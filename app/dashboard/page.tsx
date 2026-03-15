@@ -30,6 +30,8 @@ import {
 } from "@/services/weather-service";
 import { useWeatherStore } from "@/store/weather-store";
 
+const DEFAULT_CITY = "New York";
+
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const { isCheckingAuth, isAuthorized } = useProtectedRoute();
@@ -128,6 +130,12 @@ export default function DashboardPage() {
     }
   }, [isAuthorized, loadUserData]);
 
+  useEffect(() => {
+    if (isAuthorized && !currentWeather) {
+      void searchCity(DEFAULT_CITY);
+    }
+  }, [isAuthorized, currentWeather, searchCity]);
+
   if (isCheckingAuth) {
     return <main className="mx-auto max-w-6xl px-4 py-8">Loading dashboard...</main>;
   }
@@ -158,23 +166,6 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground">Welcome back, {user?.name}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-lg border border-border/70 bg-card/70 px-2 py-1 text-sm font-medium">
-            <button
-              type="button"
-              onClick={() => setTempUnit("C")}
-              className={tempUnit === "C" ? "text-foreground" : "text-muted-foreground"}
-            >
-              °C
-            </button>
-            <span className="px-1 text-muted-foreground">|</span>
-            <button
-              type="button"
-              onClick={() => setTempUnit("F")}
-              className={tempUnit === "F" ? "text-foreground" : "text-muted-foreground"}
-            >
-              °F
-            </button>
-          </div>
           <ThemeToggle />
           <Button variant="outline" onClick={detectLocation} className="gap-2">
             <MapPin className="h-4 w-4" />
@@ -191,7 +182,9 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
-          {currentWeather ? <WeatherCard weather={currentWeather} unit={tempUnit} /> : null}
+          {currentWeather ? (
+            <WeatherCard weather={currentWeather} unit={tempUnit} onUnitChange={setTempUnit} />
+          ) : null}
           {forecast ? <ForecastList forecast={forecast} unit={tempUnit} /> : null}
           {loading ? (
             <Card>

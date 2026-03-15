@@ -8,9 +8,10 @@ type Props = {
   weather: WeatherResponse;
   title?: string;
   unit: "C" | "F";
+  onUnitChange?: (unit: "C" | "F") => void;
 };
 
-export function WeatherCard({ weather, title = "Current Weather", unit }: Props) {
+export function WeatherCard({ weather, title = "Current Weather", unit, onUnitChange }: Props) {
   const icon = weather.weather?.[0]?.icon;
   const windSpeedKmh = (weather.wind.speed * 3.6).toFixed(1);
   const displayTemp =
@@ -27,7 +28,30 @@ export function WeatherCard({ weather, title = "Current Weather", unit }: Props)
       <CardContent className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-4xl font-bold">{displayTemp} {unit}</p>
+            <div className="flex items-start gap-2">
+              <p className="text-5xl font-bold leading-none">{displayTemp}</p>
+              {onUnitChange ? (
+                <div className="mt-1 inline-flex items-center text-base font-medium leading-none">
+                  <button
+                    type="button"
+                    onClick={() => onUnitChange("C")}
+                    className={unit === "C" ? "text-foreground" : "text-muted-foreground"}
+                  >
+                    °C
+                  </button>
+                  <span className="px-1 text-muted-foreground">|</span>
+                  <button
+                    type="button"
+                    onClick={() => onUnitChange("F")}
+                    className={unit === "F" ? "text-foreground" : "text-muted-foreground"}
+                  >
+                    °F
+                  </button>
+                </div>
+              ) : (
+                <span className="mt-1 text-base font-medium">°{unit}</span>
+              )}
+            </div>
             <p className="text-sm capitalize text-muted-foreground">{weather.weather?.[0]?.description}</p>
           </div>
           {icon ? (
