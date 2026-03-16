@@ -63,8 +63,8 @@ Copy `.env.example` to `.env` and fill values:
 
 ```env
 NEXT_PUBLIC_APP_NAME=SkyCast
-MONGODB_URI=
-JWT_SECRET=
+MONGODB_URI=https:/+";";;"+$;$;hshshgs
+JWT_SECRET=bxbxbxkxbzksvshmsuavMab
 JWT_EXPIRES_IN=7d
 COOKIE_SECURE=false
 ```
