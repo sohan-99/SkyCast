@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await loginUser({ email, password });
       await refreshUser();
       toast.success("Welcome back");
-      router.push("/dashboard");
+      router.push("/");
     } catch (error) {
       const message =
         error instanceof AxiosError
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await registerUser({ name, email, password });
       await refreshUser();
       toast.success("Account created");
-      router.push("/dashboard");
+      router.push("/");
     } catch (error) {
       const message =
         error instanceof AxiosError
