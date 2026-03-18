@@ -4,6 +4,7 @@ import { AxiosError } from "axios";
 import { motion } from "framer-motion";
 import { MapPin, LogOut, Heart } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -16,7 +17,6 @@ import { HistoryPanel } from "@/components/weather/history-panel";
 import { SearchForm } from "@/components/weather/search-form";
 import { WeatherCard } from "@/components/weather/weather-card";
 import { useAuth } from "@/context/auth-context";
-import { useProtectedRoute } from "@/hooks/use-protected-route";
 import { HistoryEntry } from "@/lib/types";
 import {
   addFavoriteCity,
@@ -33,8 +33,8 @@ import { useWeatherStore } from "@/store/weather-store";
 const DEFAULT_CITY = "New York";
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
-  const { isCheckingAuth, isAuthorized } = useProtectedRoute();
+  const { user, logout, isAuthenticated, isLoading: isCheckingAuth } = useAuth();
+  const router = useRouter();
   const { currentWeather, forecast, setCurrentWeather, setForecast } = useWeatherStore();
   const [favorites, setFavorites] = useState<string[]>([]);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
@@ -61,7 +61,9 @@ export default function DashboardPage() {
         ]);
         setCurrentWeather(weatherData);
         setForecast(forecastData);
-        await loadUserData();
+        if (isAuthenticated) {
+          await loadUserData();
+        }
       } catch (error) {
         const message =
           error instanceof AxiosError
@@ -72,7 +74,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     },
-    [setCurrentWeather, setForecast, loadUserData]
+    [setCurrentWeather, setForecast, loadUserData, isAuthenticated]
   );
 
   const detectLocation = useCallback(() => {
@@ -93,7 +95,9 @@ export default function DashboardPage() {
           const forecastData = await fetchForecastByCoords(latitude, longitude);
           setCurrentWeather(weather);
           setForecast(forecastData);
-          await loadUserData();
+          if (isAuthenticated) {
+            await loadUserData();
+          }
         } catch (error) {
           const message =
             error instanceof AxiosError
@@ -106,7 +110,7 @@ export default function DashboardPage() {
       },
       () => toast.error("Location permission denied")
     );
-  }, [setCurrentWeather, setForecast, loadUserData]);
+  }, [setCurrentWeather, setForecast, loadUserData, isAuthenticated]);
 
   const onAddFavorite = useCallback(async () => {
     if (!currentWeather?.name) {
@@ -114,44 +118,41 @@ export default function DashboardPage() {
       return;
     }
 
+    if (!isAuthenticated) {
+      toast.error("Please login to save cities");
+      router.push("/login");
+      return;
+    }
+
     const response = await addFavoriteCity(currentWeather.name);
     setFavorites(response.favoriteCities ?? []);
     toast.success("City saved to favorites");
-  }, [currentWeather?.name]);
+  }, [currentWeather?.name, isAuthenticated, router]);
 
   const onRemoveFavorite = useCallback(async (city: string) => {
+    if (!isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+
     const response = await removeFavoriteCity(city);
     setFavorites(response.favoriteCities ?? []);
-  }, []);
+  }, [isAuthenticated, router]);
 
   useEffect(() => {
-    if (isAuthorized) {
+    if (isAuthenticated) {
       void loadUserData();
     }
-  }, [isAuthorized, loadUserData]);
+  }, [isAuthenticated, loadUserData]);
 
   useEffect(() => {
-    if (isAuthorized && !currentWeather) {
+    if (!currentWeather) {
       void searchCity(DEFAULT_CITY);
     }
-  }, [isAuthorized, currentWeather, searchCity]);
+  }, [currentWeather, searchCity]);
 
   if (isCheckingAuth) {
     return <main className="mx-auto max-w-6xl px-4 py-8">Loading dashboard...</main>;
-  }
-
-  if (!isAuthorized) {
-    return (
-      <main className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center gap-4 px-4 text-center">
-        <h2 className="text-2xl font-bold">Session expired</h2>
-        <p className="text-sm text-muted-foreground">
-          Please login again. If backend is down, restart it first and then sign in.
-        </p>
-        <Link href="/login" className="text-sm font-semibold text-primary underline">
-          Go to login
-        </Link>
-      </main>
-    );
   }
 
   return (
@@ -163,7 +164,9 @@ export default function DashboardPage() {
       >
         <div>
           <h1 className="text-3xl font-bold">Weather Dashboard</h1>
-          <p className="text-sm text-muted-foreground">Welcome back, {user?.name}</p>
+          <p className="text-sm text-muted-foreground">
+            {isAuthenticated ? `Welcome back, ${user?.name}` : "Browse weather as guest. Login to save cities."}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -171,10 +174,16 @@ export default function DashboardPage() {
             <MapPin className="h-4 w-4" />
             Current Location
           </Button>
-          <Button variant="outline" onClick={logout} className="gap-2">
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+          {isAuthenticated ? (
+            <Button variant="outline" onClick={logout} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Button>
+          ) : (
+            <Link href="/login">
+              <Button variant="outline">Login</Button>
+            </Link>
+          )}
         </div>
       </motion.header>
 
@@ -199,12 +208,36 @@ export default function DashboardPage() {
           transition={{ delay: 0.1 }}
           className="space-y-6"
         >
-          <Button onClick={onAddFavorite} className="w-full gap-2">
-            <Heart className="h-4 w-4" />
-            Save Current City
-          </Button>
-          <FavoritesPanel favorites={favorites} onSelect={searchCity} onRemove={onRemoveFavorite} />
-          <HistoryPanel history={history} unit={tempUnit} />
+          <div className="space-y-2">
+            <Button 
+              onClick={onAddFavorite} 
+              className="w-full gap-2"
+              disabled={!isAuthenticated}
+            >
+              <Heart className="h-4 w-4" />
+              Save Current City
+            </Button>
+            {!isAuthenticated && (
+              <p className="text-xs text-muted-foreground text-center">
+                Sign in to save your favorite cities
+              </p>
+            )}
+          </div>
+          {isAuthenticated ? (
+            <>
+              <FavoritesPanel favorites={favorites} onSelect={searchCity} onRemove={onRemoveFavorite} />
+              <HistoryPanel history={history} unit={tempUnit} />
+            </>
+          ) : (
+            <Card>
+              <CardContent className="space-y-3 pt-6 text-sm text-muted-foreground">
+                <p>Login to view favorites and search history.</p>
+                <Link href="/login" className="font-semibold text-primary underline">
+                  Go to login
+                </Link>
+              </CardContent>
+            </Card>
+          )}
         </motion.aside>
       </div>
     </main>
