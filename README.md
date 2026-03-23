@@ -27,6 +27,7 @@ Production-oriented weather forecast application built as a pure Next.js project
 /lib/server
 ```
 
+
 ## Implemented Features
 
 - User registration and login
@@ -46,6 +47,7 @@ Production-oriented weather forecast application built as a pure Next.js project
 
 ## API Endpoints
 
+
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/auth/me`
@@ -63,7 +65,7 @@ Copy `.env.example` to `.env` and fill values:
 
 ```env
 NEXT_PUBLIC_APP_NAME=SkyCast
-MONGODB_URI=https:/+";";;"+$;$;hshshgs
+MONGODB_URI=https:/+";";;"+$;$;hshshgskljkvhjgchfxgjhkvjlk
 JWT_SECRET=bxbxbxkxbzksvshmsuavMab
 JWT_EXPIRES_IN=7d
 COOKIE_SECURE=false
